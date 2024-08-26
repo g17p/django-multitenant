@@ -53,7 +53,10 @@ def get_tenant_column(model_class_or_instance):
         return model_class_or_instance.tenant_field
     except Exception as not_a_tenant_model:
         raise ValueError(
-            f"{model_class_or_instance.__class__.__name__} is not an instance or a subclass of TenantModel or does not inherit from TenantMixin"
+            f"""
+                {model_class_or_instance.__class__.__name__} is not an instance or
+                a subclass of TenantModel or does not inherit from TenantMixin
+            """
         ) from not_a_tenant_model
 
 
@@ -88,7 +91,15 @@ def set_object_tenant(instance, value):
         setattr(instance, instance.tenant_field, value)
 
 
-def get_current_tenant_value():
+def get_single_tenant_override():
+    return getattr(_context, "tenant_single_override", False)
+
+
+def set_single_tenant_override(v):
+    setattr(_context, "tenant_single_override", bool(v))
+
+
+def get_current_tenant_value(list_num=0):
     """
     Returns current set tenant value if exists
     If tenant is a list, it will return a list of tenant values
@@ -102,6 +113,9 @@ def get_current_tenant_value():
         current_tenant = list(current_tenant)
     except TypeError:
         return current_tenant.tenant_value
+    # _single_tenant_override = getattr(_context, "tenant_single_override", False)
+    if (get_single_tenant_override() and len(current_tenant) > 1):
+        return current_tenant[list_num]
 
     values = []
     for t in current_tenant:
@@ -144,6 +158,7 @@ def set_current_tenant(tenant):
 
 def unset_current_tenant():
     setattr(_context, "tenant", None)
+    setattr(_context, "tenant_single_override", None)
 
 
 def is_distributed_model(model):
